@@ -56,7 +56,11 @@ class QracFeatureMap(FeatureMap):
             qc.barrier()
         return qc
 
-
+def callback_loss(a, b, c, d):
+    if a%10 == 0:
+        print('count '+str(a))
+        print('value '+str(c))
+        print('index '+str(d))
 '''
 Dummy input
 training_input = {'A':['000','001','010','011','100'],'B':['101','110','111']}
@@ -64,16 +68,25 @@ test_input = {'A':['000','001','010','011','100'],'B':['101','110','111']}
 '''
 
 training_input, test_input, pre_input = data2feature(read_cancer_data())
-random_seed = 111
+random_seed = 333
 
 backend = BasicAer.get_backend('qasm_simulator')
+"""
+from qiskit import IBMQ
+from qiskit.providers.ibmq import least_busy
+IBMQ.load_account()
+provider = IBMQ.get_provider(hub='ibm-q-utokyo', group='internal', project='qc2021s')
+backend = least_busy(provider.backends(filters=lambda x: x.configuration().n_qubits >= 3 and
+                                   not x.configuration().simulator and x.status().operational==True))
+print("least busy backend: ", backend)
+"""
 
-optimizer = SPSA(max_trials=200, c0=4.0, skip_calibration=True)
+optimizer = SPSA(max_trials=100, c0=4.0, skip_calibration=True)
 optimizer.set_options(save_steps=1)
 feature_map = QracFeatureMap(feature_dimension=3, depth=1)
-var_form = TwoLocal(3, ['ry','rz'], 'cz', reps=4)
-vqc = VQC(optimizer, feature_map, var_form, training_input, test_input)
-quantum_instance = QuantumInstance(backend, shots=1024, seed_simulator=random_seed, seed_transpiler=random_seed)
+var_form = TwoLocal(3, ['ry','rz'], 'cz', reps=2)
+vqc = VQC(optimizer, feature_map, var_form, training_input, test_input, )
+quantum_instance = QuantumInstance(backend, shots=1024, seed_simulator=random_seed, seed_transpiler=random_seed, callback=callback_loss)
 result = vqc.run(quantum_instance)
 pre_result_A = vqc.predict(pre_input['A'], quantum_instance)
 pre_result_B = vqc.predict(pre_input['B'], quantum_instance)
