@@ -70,3 +70,83 @@ def read_cancer_data():
             pattern_list.append(pattern)
         return np.array(pattern_list,dtype=np.int)
 
+
+def data2feature(data):
+    """
+    Idea: 9-bits representation for each case
+    1:age: <30, 40, 50, >60
+    2:tumor-size <15, 20, 25, >30
+    3:deg-malig: 1:00 2:01 3:10
+    4:breast-quad: lu:000 ll:001 ru:010 rl:011 c:100
+    """
+    dict = {}
+    A_list = []
+    B_list = []
+    for case in data:
+        if case[1]>=60:
+            b1='11'
+        elif case[1]==50:
+            b1='10'
+        elif case[1]==40:
+            b1='01'
+        else:
+            b1='00'
+
+        if case[3]<=15:
+            b3='00'
+        elif case[3]==20:
+            b3='01'
+        elif case[3]==25:
+            b3='10'
+        elif case[3]>=30:
+            b3='11'
+
+        if case[6]==1:
+            b5='00'
+        elif case[6]==2:
+            b5='01'
+        elif case[6]==3:
+            b5='10'
+        else:
+            b5='11'
+
+        if case[8]==0:
+            b7='000'
+        elif case[8]==1:
+            b7='001'
+        elif case[8]==2:
+            b7='010'
+        elif case[8] == 3:
+            b7 = '011'
+        elif case[8]==4:
+            b7='100'
+
+
+        if case[0]==0:
+            A_list.append(b1+b3+b5+b7)
+        else:
+            B_list.append(b1+b3+b5+b7)
+    B_list = B_list + B_list
+    training_d = {'A':A_list[:int(0.6*len(A_list))], 'B':B_list[:int(0.6*len(B_list))]}
+    test_d = {'A':A_list[int(0.6*len(A_list))+1:int(0.9*len(A_list))], 'B':B_list[int(0.6*len(B_list))+1:int(0.9*len(B_list))]}
+    pred_d = {'A':A_list[int(0.9*len(A_list)):], 'B':B_list[int(0.9*len(B_list)):]}
+    return training_d, test_d, pred_d
+
+
+def str2vec(string):
+    """
+    transfer binary string to number:
+    '00110101' -> [0,0,1,1,0,1,0,1]
+    :return:
+    """
+    data = []
+    for case in string:
+        item = []
+        for bin in case:
+            if bin == '0':
+                item.append(0)
+            else:
+                item.append(1)
+        data.append(item)
+    return np.array(data)
+
