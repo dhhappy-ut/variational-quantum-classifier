@@ -1,5 +1,5 @@
 import numpy as np
-
+np.random.seed(42)
 
 def read_cancer_data():
     """
@@ -127,9 +127,24 @@ def data2feature(data):
         else:
             B_list.append(b1+b3+b5+b7)
     B_list = B_list + B_list
-    training_d = {'A':A_list[:int(0.6*len(A_list))], 'B':B_list[:int(0.6*len(B_list))]}
-    test_d = {'A':A_list[int(0.6*len(A_list))+1:int(0.9*len(A_list))], 'B':B_list[int(0.6*len(B_list))+1:int(0.9*len(B_list))]}
-    pred_d = {'A':A_list[int(0.9*len(A_list)):], 'B':B_list[int(0.9*len(B_list)):]}
+    # split data set train 8 : test 2
+    training_d = {'A':A_list[:int(0.8*len(A_list))], 'B':B_list[:int(0.8*len(B_list))]}
+    test_d = {'A':A_list[int(0.8*len(A_list))+1:int(len(A_list))], 'B':B_list[int(0.8*len(B_list))+1:int(len(B_list))]}
+    
+    # cross validation set
+    random_arrayA = np.random.choice(len(A_list), len(A_list), replace=False)
+    random_arrayB = np.random.choice(len(B_list), len(B_list), replace=False)
+    
+    vald_A_list = []
+    vald_B_list = []
+    for i in range(len(A_list)):
+        vald_A_list.append(A_list[random_arrayA[i]])
+        vald_B_list.append(B_list[random_arrayB[i]])
+
+    A_validation_set = np.array_split(vald_A_list, 10)
+    B_validation_set = np.array_split(vald_B_list, 10)
+
+    pred_d = {'A':A_validation_set, 'B':B_validation_set}
     return training_d, test_d, pred_d
 
 
