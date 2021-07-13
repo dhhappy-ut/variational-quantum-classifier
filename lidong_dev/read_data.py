@@ -139,6 +139,7 @@ def data2feature(data):
     vald_B_list = []
     for i in range(len(A_list)):
         vald_A_list.append(A_list[random_arrayA[i]])
+    for i in range(len(B_list)):
         vald_B_list.append(B_list[random_arrayB[i]])
 
     A_validation_set = np.array_split(vald_A_list, 10)
