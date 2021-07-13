@@ -13,24 +13,16 @@ from read_data import *
 class QracFeatureMap(FeatureMap):
     """Mapping data with a custom feature map."""
 
-    def __init__(self, feature_dimension, depth=2, entangler_map=None):
+    def __init__(self, feature_dimension, depth=2):
         """
         Args:
             feature_dimension (int): number of features
             depth (int): the number of repeated circuits
-            entangler_map (list[list]): describe the connectivity of qubits, each list describes
-                                        [source, target], or None for full entanglement.
-                                        Note that the order is the list is the order of
-                                        applying the two-qubit gate.
         """
         self._support_parameterized_circuit = False
         self._feature_dimension = feature_dimension
         self._num_qubits = self._feature_dimension = feature_dimension
         self._depth = depth
-        self._entangler_map = None
-        if self._entangler_map is None:
-            self._entangler_map = [[i, j] for i in range(self._feature_dimension) for j in
-                                   range(i + 1, self._feature_dimension)]
 
     def construct_circuit(self, feature_string, qr, inverse=False):
         """Construct the feature map circuit.
@@ -56,11 +48,22 @@ class QracFeatureMap(FeatureMap):
             qc.barrier()
         return qc
 
-def callback_loss(a, b, c, d):
-    if a%10 == 0:
-        print('count '+str(a))
-        print('value '+str(c))
-        print('index '+str(d))
+class TrainingMonitor:
+    def __init__(self, iters, logging = True):
+        self.batch_num = []
+        self.params = []
+        self.loss_hist = []
+        self.index = []
+        self.it = iters
+        self.is_logging = logging
+    def callback_monitor(self,a,b,c,d):
+        if a%self.it==0:
+            self.batch_num.append(a)
+            self.params.append(b)
+            self.loss_hist.append(c)
+            self.index.append(d)
+            if self.is_logging:
+                print('Loss: %.3f'%c)
 '''
 Dummy input
 training_input = {'A':['000','001','010','011','100'],'B':['101','110','111']}
@@ -85,8 +88,9 @@ optimizer = SPSA(max_trials=100, c0=4.0, skip_calibration=True)
 optimizer.set_options(save_steps=1)
 feature_map = QracFeatureMap(feature_dimension=3, depth=1)
 var_form = TwoLocal(3, ['ry','rz'], 'cz', reps=2)
-vqc = VQC(optimizer, feature_map, var_form, training_input, test_input, )
-quantum_instance = QuantumInstance(backend, shots=1024, seed_simulator=random_seed, seed_transpiler=random_seed, callback=callback_loss)
+monitor = TrainingMonitor(5, logging=True)
+vqc = VQC(optimizer, feature_map, var_form, training_input, test_input, callback=monitor.callback_monitor)
+quantum_instance = QuantumInstance(backend, shots=1024, seed_simulator=random_seed, seed_transpiler=random_seed)
 result = vqc.run(quantum_instance)
 pre_result_A = vqc.predict(pre_input['A'], quantum_instance)
 pre_result_B = vqc.predict(pre_input['B'], quantum_instance)
