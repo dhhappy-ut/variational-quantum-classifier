@@ -64,38 +64,43 @@ class TrainingMonitor:
             self.index.append(d)
             if self.is_logging:
                 print('Loss: %.3f'%c)
-'''
-Dummy input
-training_input = {'A':['000','001','010','011','100'],'B':['101','110','111']}
-test_input = {'A':['000','001','010','011','100'],'B':['101','110','111']}
-'''
 
-training_input, test_input, pre_input = data2feature(read_cancer_data())
-random_seed = 333
+if __name__ == "__main__":
+    training_input, test_input, pre_input = data2feature(read_cancer_data())
+    random_seed = 333
 
-backend = BasicAer.get_backend('qasm_simulator')
-"""
-from qiskit import IBMQ
-from qiskit.providers.ibmq import least_busy
-IBMQ.load_account()
-provider = IBMQ.get_provider(hub='ibm-q-utokyo', group='internal', project='qc2021s')
-backend = least_busy(provider.backends(filters=lambda x: x.configuration().n_qubits >= 3 and
-                                   not x.configuration().simulator and x.status().operational==True))
-print("least busy backend: ", backend)
-"""
+    backend = BasicAer.get_backend('qasm_simulator')
 
-optimizer = SPSA(max_trials=100, c0=4.0, skip_calibration=True)
-optimizer.set_options(save_steps=1)
-feature_map = QracFeatureMap(feature_dimension=3, depth=1)
-var_form = TwoLocal(3, ['ry','rz'], 'cz', reps=2)
-monitor = TrainingMonitor(5, logging=True)
-vqc = VQC(optimizer, feature_map, var_form, training_input, test_input, callback=monitor.callback_monitor)
-quantum_instance = QuantumInstance(backend, shots=1024, seed_simulator=random_seed, seed_transpiler=random_seed)
-result = vqc.run(quantum_instance)
-pre_result_A = vqc.predict(pre_input['A'], quantum_instance)
-pre_result_B = vqc.predict(pre_input['B'], quantum_instance)
-print('Predict success ratio for negative cases')
-print(list(pre_result_A[1]).count(0)/len(pre_result_A[1]))
-print('Predict success ratio for postive cases')
-print(list(pre_result_B[1]).count(1)/len(pre_result_B[1]))
+    optimizer = SPSA(max_trials=100, c0=4.0, skip_calibration=True)
+    optimizer.set_options(save_steps=1)
+    feature_map = QracFeatureMap(feature_dimension=3, depth=1)
+    var_form = TwoLocal(3, ['ry','rz'], 'cz', reps=2)
+    monitor = TrainingMonitor(5, logging=True)
+    vqc = VQC(optimizer, feature_map, var_form, training_input, test_input, callback=monitor.callback_monitor)
+    quantum_instance = QuantumInstance(backend, shots=1024, seed_simulator=random_seed, seed_transpiler=random_seed)
+    result = vqc.run(quantum_instance)
 
+    result_set_A = []
+    result_set_B = []
+    for i in range(10):
+        pre_result_A = vqc.predict(pre_input['A'][i], quantum_instance)
+        pre_result_B = vqc.predict(pre_input['B'][i], quantum_instance)
+        success_ratio_A = list(pre_result_A[1]).count(0)/len(pre_result_A[1])
+        success_ratio_B = list(pre_result_B[1]).count(1)/len(pre_result_B[1])
+        print(f'Predict success ratio for negative cases of {i+1}th valid set: {success_ratio_A:.3f}')
+        print(f'Predict success ratio for postive cases of {i+1}th valid set: {success_ratio_B:.3f}\n')
+        result_set_A.append(success_ratio_A)
+        result_set_B.append(success_ratio_B)
+        
+    average_ratio_A = sum(result_set_A) / len(result_set_A)
+    average_ratio_B = sum(result_set_B) / len(result_set_B)
+    print(f"success negative cases: {average_ratio_A:.3f}\n success positive cases: {average_ratio_B:.3f}")
+
+    # Calculate f1 score
+    p = list(pre_result_B[1]).count(1)/(list(pre_result_B[1]).count(1)+list(pre_result_A[1]).count(1))
+    r = list(pre_result_B[1]).count(1)/len(pre_result_B[1])
+    f1 = 2*p*r/(p+r)
+    
+    overall = (list(pre_result_A[1]).count(0)+list(pre_result_B[1]).count(1))/(len(pre_result_A[1])+len(pre_result_B[1]))
+    print(f'Overall success ratio: {overall:.3f}')
+    print(f'F1 value: {f1:.3f}')
