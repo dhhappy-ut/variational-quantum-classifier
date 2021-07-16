@@ -6,7 +6,9 @@ Implementation of Quantum Random Access Coding (QRAC) and Variational Quantum Cl
 [Breast Cancer Dataset by UCI Machine Learning Repository](https://archive.ics.uci.edu/ml/datasets/breast+cancer)
 
 ## (3, 1) QRAC
-in progress
+For implementing, we make $n$ copies of (3,1) QRAC to be a $(3n,n)$ QRAC, so that we can train a model which can accept $3n$ binary features. 
+
+Due to our time limit, we set $n=3$.
 
 # Set features to predict
 `read_data.py` prepares data to predict on VQC.
